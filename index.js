@@ -1762,99 +1762,120 @@ const FABRIC_CLASSIFICATION_HTML = `
                 };
 
                 function searchHTSByFilters() {
-                    console.log('searchHTSByFilters invoked', selectedFilters);
-                    
 
-                
                     if (isResetting) return;
                     if (!selectedFilters.category || !selectedFilters.exportingCountry) {
                         clearResults();
                         return;
                     }
-                
-                    const productCategory = selectedFilters.category;
-                    const gender = selectedFilters.gender || 'All';
-                    const material = selectedFilters.material || 'All';
-                    const fabric = selectedFilters.fabric || 'All';
-                    const exportingCountry = selectedFilters.exportingCountry;
 
-                    const isBabiesSearch = gender === "Babies";
-                
-                    if (!productCategory || !exportingCountry) {
-                        document.getElementById("resultsContainer").innerHTML =
-                            "<div class='no-results'>Please select Product Category and Country</div>";
-                        return;
-                    }
-                
-                    /* 🔑 STEP 1: derive HTS keywords ONLY from PRODUCT CATEGORY */
-                    let keywordList = CATEGORY_KEYWORDS[productCategory] || [];
-                
-                    // Fallback: match sub-item inside grouped keywords
-                    if (!keywordList.length) {
-                        const normalizedProduct = normalizeText(productCategory);
-                        for (const kws of Object.values(CATEGORY_KEYWORDS)) {
-                            if (kws.some(kw => normalizeText(kw) === normalizedProduct)) {
-                                keywordList = kws;
-                                break;
+                    const productCategory = selectedFilters.category;
+
+
+                        const gender = selectedFilters.gender;
+                        const material = selectedFilters.material;
+                        const fabric = selectedFilters.fabric;
+                        const exportingCountry = selectedFilters.exportingCountry;
+
+                        if (!productCategory || !exportingCountry) {
+                            document.getElementById("resultsContainer").innerHTML =
+                                "<div class='no-results'>Please select Product Category and Country</div>";
+                            return;
+                        }
+
+                        /* 🔑 STEP 1: derive HTS keywords ONLY from PRODUCT CATEGORY */
+                        let keywordList = CATEGORY_KEYWORDS[productCategory] || [];
+
+                        // Fallback: if user selected a specific sub-item (e.g. "Blanket Sleepers")
+                        // that exists inside a grouped keyword array (e.g. "Babies Garments"),
+                        // try to find the matching keyword array by searching values.
+                        if (!keywordList.length) {
+                            const normalizedProduct = normalizeText(productCategory);
+                            for (const [catKey, kws] of Object.entries(CATEGORY_KEYWORDS)) {
+                                if (kws.some(kw => normalizeText(kw) === normalizedProduct)) {
+                                    keywordList = kws;
+                                    break;
+                                }
                             }
                         }
-                    }
-                
-                    if (!keywordList.length) return;
-                
-                    const productCategoryNormalized = normalizeText(productCategory);
-                
-                    /* 🔑 STEP 2: FILTER masterData */
-                    let filtered = masterData
+
+                        if (!keywordList.length) return false;
+
+                        const productCategoryNormalized = normalizeText(productCategory);
+
+                        /* 🔑 STEP 2: FILTER masterData based on all criteria */
+                        let filtered = masterData
                         .filter(item => {
-                
+
                             if (!item.htsno || !isTenDigitHTS(item.htsno)) return false;
-                
-                            const chapter = item.htsno.substring(0, 2);
-                            const normalizedDesc = normalizeText(getFullHierarchyText(item));
-                
-                            /* 🚫 CATEGORY-SPECIFIC HARD EXCLUSIONS */
+
+                          
+
+                        const chapter = item.htsno.substring(0, 2);
+                        const normalizedDesc = normalizeText(getFullHierarchyText(item));
+
+                            // 🚫 CATEGORY-SPECIFIC HARD EXCLUSIONS (HTS SAFE)
                             const rule = CATEGORY_EXCLUSIONS[productCategory];
+
                             if (rule) {
-                
-                                if (
-                                    rule.excludeParentKeywords &&
-                                    selectedFilters.gender !== 'Babies' &&
-                                    rule.excludeParentKeywords.some(k =>
-                                        new RegExp(`\\b${k}\\b`, 'i').test(normalizedDesc)
-                                    )
-                                ) return false;
-                
+
+                                    // ❌ category-level exclusions that reference parent keywords (e.g. "babies", "infants")
+                                    // If the user explicitly selected the Babies gender, do NOT apply these exclusions
+                                    if (
+                                        rule.excludeParentKeywords &&
+                                        selectedFilters.gender !== 'Babies' &&
+                                        rule.excludeParentKeywords.some(k =>
+                                            new RegExp(`\\b${k}\\b`, 'i').test(normalizedDesc)
+                                        )
+                                    ) {
+                                        return false;
+                                    }
+
+                                // ❌ normal exclusions
                                 if (
                                     rule.excludeKeywords &&
                                     rule.excludeKeywords.some(kw =>
                                         new RegExp(`\\b${kw}\\b`, 'i').test(normalizedDesc)
                                     )
-                                ) return false;
-                
+                                ) {
+                                    return false;
+                                }
+
+                                // ❌ chapter restriction
                                 if (
                                     rule.allowedChapters &&
                                     !rule.allowedChapters.includes(chapter)
-                                ) return false;
-                            }
-                
-                            /* 👶 BABIES SCOPE — STRICT */
-                            const derivedScope = getCategoryScope(productCategory);
-                            if (derivedScope) {
-                                const hasHierarchyScope = hasScopeInHierarchy(item, derivedScope);
-                                const hasExactCategoryPhrase =
-                                    normalizedDesc.includes(productCategoryNormalized);
-                
-                                // Babies text alone is NOT enough
-                                if (!hasHierarchyScope && !hasExactCategoryPhrase) {
+                                ) {
                                     return false;
                                 }
                             }
-                
+
+
+
+                            const derivedScope = getCategoryScope(productCategory);
+                            const isScopeCategory = !!derivedScope;
+
+                            if (
+                                    !isScopeCategory &&
+                                    !matchesCategoryHierarchy(item, keywordList)
+                                ) {
+                                    return false;
+                                }
+
+                                // 👶 babies must actually exist in hierarchy
+                                if (
+                                    isScopeCategory &&
+                                    !hasScopeInHierarchy(item, derivedScope)
+                                ) {
+                                    return false;
+                                }
+
+
+
                             /* ✅ GENDER */
                             if (gender !== "All") {
                                 const leafGenders = getGenderFromLeafAndParent(item);
-                
+
                                 if (gender === "Babies") {
                                     if (!leafGenders?.includes("Babies")) {
                                         const scope = getGenderScope(item);
@@ -1869,13 +1890,13 @@ const FABRIC_CLASSIFICATION_HTML = `
                                     }
                                 }
                             }
-                
+
                             /* ✅ FABRIC */
                             if (fabric !== "All" &&
                                 !normalizedDesc.includes(normalizeText(fabric))) {
                                 return false;
                             }
-                
+
                             /* ✅ FEATURE */
                             if (selectedFilters.feature !== "All") {
                                 if (!normalizedDesc.includes(
@@ -1884,135 +1905,118 @@ const FABRIC_CLASSIFICATION_HTML = `
                                     return false;
                                 }
                             }
-                
+
                             /* ✅ MATERIAL */
                             const isMaterialNeutral =
-                                MATERIAL_NEUTRAL_CATEGORIES.has(productCategoryNormalized);
-                
+                            MATERIAL_NEUTRAL_CATEGORIES.has(normalizeText(productCategory));
+
                             if (!isMaterialNeutral) {
                                 if (material === "Knitted" && chapter !== "61") return false;
                                 if (material === "Woven" && chapter !== "62") return false;
                             }
-                
+
                             return true;
                         })
-                
-                        /* 🔑 STEP 3: SCORE & TAG */
                         .map(item => {
-                
+
                             const fullDesc = normalizeText(getFullHierarchyText(item));
-                
+
                             let keywordHits = 0;
                             let uniqueHits = 0;
-                
+
                             keywordList.forEach(kw => {
                                 const normalizedKw = normalizeText(kw);
+
+                                // count ALL occurrences (duplicates included)
                                 const escapedKw = normalizedKw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
                                 const matches = fullDesc.match(new RegExp(escapedKw, "g"));
-                
+
                                 if (matches) {
-                                    keywordHits += Math.min(matches.length, 5);
+                                    keywordHits += matches.length;
                                     uniqueHits += 1;
                                 }
                             });
-                
-                            const hasBabiesScope = isBabiesSearch && (
-                                getGenderScope(item)?.includes("Babies") ||
-                                fullDesc.includes("babies") ||
-                                fullDesc.includes("infant")
-                            );
-                            
-                
-                            const exactCategoryPhraseMatch =
-                                fullDesc.includes(productCategoryNormalized);
-                
+
                             const synonyms = CATEGORY_SYNONYMS[productCategory] || [];
-                
                             return {
                                 item,
                                 keywordHits,
                                 uniqueHits,
-                                hasBabiesScope,
-                                exactCategoryPhraseMatch,
-                
+
                                 isLeaf:
                                     isExactProductAtLeaf(item, productCategoryNormalized) ||
                                     synonyms.some(s =>
                                         isExactProductAtLeaf(item, normalizeText(s))
                                     ),
-                
+
                                 isParent: isMatchInParent(item, productCategoryNormalized)
                             };
-                        });
-                
-                    if (!filtered.length) {
-                        document.getElementById("resultsContainer").innerHTML =
-                            "<div class='no-results'>No matching HTS found</div>";
-                        return;
-                    }
-                
-                    /* 🔑 STEP 4: SPLIT RESULTS */
-                    const primaryResults = [];
-                    const relatedResults = [];
-                
-                    filtered.forEach(r => {
-                
-                        const categoryLeaf = getCategoryLeaf(productCategory);
-                        const isStrongSingleNodeCategory =
-                            isSingleNodeStrongCategory(categoryLeaf) &&
-                            (r.isLeaf || r.isParent);
-                
-                        const derivedScope = getCategoryScope(productCategory);
-                        const isScopeStrong =
-                            derivedScope && hasScopeInHierarchy(r.item, derivedScope);
-                
-                        if (
-                            r.isLeaf ||
-                            r.exactCategoryPhraseMatch ||
-                            isStrongSingleNodeCategory ||
-                            (isScopeStrong && r.keywordHits >= 1) ||
-                            (isBabiesSearch && r.keywordHits >= 2 && r.hasBabiesScope)
 
-                        ) {
-                            primaryResults.push(r);
-                        } else {
-                            relatedResults.push(r);
-                        }
-                    });
-                
-                    /* 🔑 STEP 5: SORT — CATEGORY FIRST */
-                    primaryResults.sort((a, b) => {
-                
-                        if (a.exactCategoryPhraseMatch !== b.exactCategoryPhraseMatch) {
-                            return b.exactCategoryPhraseMatch - a.exactCategoryPhraseMatch;
-                        }
-                
-                        if (isBabiesSearch && a.hasBabiesScope !== b.hasBabiesScope) {
-                            return b.hasBabiesScope - a.hasBabiesScope;
+                        });
+
+                        
+
+                        if (!filtered.length) {
+                            document.getElementById("resultsContainer").innerHTML =
+                                "<div class='no-results'>No matching HTS found</div>";
+                            return;
                         }
                         
-                
+                        const primaryResults = [];
+                        const relatedResults = [];
+
+                        filtered.forEach(r => {
+
+                                const isStrongSingleNodeCategory =
+                                    isSingleNodeStrongCategory(productCategory) &&
+                                    (r.isLeaf || r.isParent);
+
+                                    const derivedScope = getCategoryScope(productCategory);
+
+                                const isScopeStrong =
+                                    derivedScope &&
+                                    hasScopeInHierarchy(r.item, derivedScope);
+
+
+                                if (
+                                    isScopeStrong ||          // 👶👧👦 demographic scopes
+                                    r.keywordHits >= 2 ||
+                                    r.uniqueHits >= 2 ||
+                                    r.isLeaf ||
+                                    isStrongSingleNodeCategory
+                                ) {
+                                    primaryResults.push(r);
+                                } else {
+                                    relatedResults.push(r);
+                                }
+                            });
+
+                        primaryResults.sort((a, b) => {
+
+                        // 1️⃣ TOTAL keyword occurrences (duplicates included)
                         if (b.keywordHits !== a.keywordHits) {
                             return b.keywordHits - a.keywordHits;
                         }
-                
+
+                        // 2️⃣ Unique keyword coverage
                         if (b.uniqueHits !== a.uniqueHits) {
                             return b.uniqueHits - a.uniqueHits;
                         }
-                
-                        const rank = r => r.isLeaf ? 1 : r.isParent ? 2 : 3;
-                        return rank(a) - rank(b);
-                    });
-                
-                    /* 🔑 STEP 6: DISPLAY */
-                    displayResults(
-                        primaryResults.map(r => r.item),
-                        relatedResults.map(r => r.item),
-                        getRateType(exportingCountry),
-                        keywordList
-                    );
-                }
-                
+
+                        // 3️⃣ Leaf > Parent
+                        const getPriority = r => r.isLeaf ? 1 : r.isParent ? 2 : 3;
+                        return getPriority(a) - getPriority(b);
+                        });
+
+
+
+                        displayResults(
+                            primaryResults.map(r => r.item),
+                            relatedResults.map(r => r.item),
+                            getRateType(exportingCountry),
+                            keywordList
+                        );
+                        }
 
                     function clearResults() {
                         document.getElementById('resultsContainer').innerHTML =
