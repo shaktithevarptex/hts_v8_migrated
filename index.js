@@ -279,7 +279,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                 "Mantillas": ["mantillas"],
                 "Veils": ["veils"],
 
-                "Ties": ["Ties"],
+                "Ties": ["ties"],
                 "Bow Ties": ["bow ties"],
                 "Cravats": ["cravats"],
 
@@ -1685,7 +1685,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                         "women",
                         "men",
                         "blouses",
-                        "sets"
+                        "sets",
                     ]);
 
                 function hasScopeInHierarchy(item, scope) {
@@ -1749,7 +1749,16 @@ const FABRIC_CLASSIFICATION_HTML = `
                         excludeParentKeywords: ["overcoats","ensembles","sweaters","loomed","wool","dress","warp","silk","tracksuits","pajamas","swimwear","jumpsuits","T-shirts","knitted","textile","playsuits",],
                         excludeKeywords:["cotton"],
                         allowedChapters: ["61", "62"]
+                    },
+                    "Ties": {
+                        excludeParentKeywords: ["panties","booties"],
+                        allowedChapters: ["61", "62"]
+                    },
+                    "Dresses": {
+                        excludeParentKeywords: ["nightdresses"],
+                        allowedChapters: ["61", "62"]
                     }
+                    
                 };
 
                 function searchHTSByFilters() {
