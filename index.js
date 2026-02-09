@@ -2915,6 +2915,8 @@ window.importJSON = importJSON;
 window.closeModal = closeModal;
 window.showDetails = showDetails;
 window.copyHTSCode = copyHTSCode;
+window.toggleOtherResults = toggleOtherResults;
+window.filterFabricRules = filterFabricRules;
 
 
     initializeCountries();
