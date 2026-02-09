@@ -2311,7 +2311,7 @@ const FABRIC_CLASSIFICATION_HTML = `
             href="https://hts.usitc.gov/search?query=${encodeURIComponent(item.htsno)}"
             target="_blank"
             class="hts-code-link"
-            title="View HTS Code Structure on USITC Website"
+            title="Click to View HTS Code Structure on USITC Website"
             onclick="event.stopPropagation()"
         >
             ${item.htsno}
@@ -2319,7 +2319,7 @@ const FABRIC_CLASSIFICATION_HTML = `
 
         <button
             class="hts-info-btn"
-            title="View details"
+            title="Click to View Details"
             onclick='event.stopPropagation(); showDetails(${JSON.stringify(item).replace(/'/g, "&apos;")}, "${rateType}")'
         >
             i
@@ -2395,7 +2395,7 @@ const FABRIC_CLASSIFICATION_HTML = `
             href="https://hts.usitc.gov/search?query=${encodeURIComponent(item.htsno)}"
             target="_blank"
             class="hts-code-link"
-            title="View HTS Code Structure on USITC Website"
+            title="Click to View HTS Code Structure on USITC Website"
             onclick="event.stopPropagation()"
         >
             ${item.htsno}
@@ -2403,7 +2403,7 @@ const FABRIC_CLASSIFICATION_HTML = `
 
         <button
             class="hts-info-btn"
-            title="View details"
+            title="Click to View Details"
             onclick='event.stopPropagation(); showDetails(${JSON.stringify(item).replace(/'/g, "&apos;")}, "${rateType}")'
         >
             i
