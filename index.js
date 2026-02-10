@@ -184,7 +184,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                 "Anoraks": ["anoraks"],
                 "Ski-Jackets": ["ski jackets", "ski-jackets"],
                 "Windbreakers": ["windbreakers"],
-                "Coats": ["Coats"],
+                "Coats": ["coats"],
                 "Jackets": ["jackets"],
 
                 "Suits": ["suits"],
@@ -240,7 +240,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                 "Bodyshirts": ["bodyshirts"],
                 "Sunsuits": ["sunsuits"],
                 "Washsuits": ["wash suits", "washsuits"],
-                "One-Piece Playsuits": ["one-piece playsuits ","playsuits","playsuits","one piece","one piece playsuit","one piece playsuits"],
+                "One-Piece Playsuits": ["one-piece playsuits ","one piece playsuits"],
                 "Jumpsuits": ["jumpsuits"],
 
                 "Panty Hose": ["panty hose"],
@@ -268,6 +268,10 @@ const FABRIC_CLASSIFICATION_HTML = `
                     "waistcoats",
                     "washsuits"
                     ],
+                "Playsuits": ["playsuits"],
+                "Sets":["sets"],
+                "Blanket Sleepers":["blanket sleepers"],
+                "Socks and Booties":["socks and booties"],
 
                 "Gloves": ["gloves"],
                 "Mittens": ["mittens"],
@@ -286,10 +290,10 @@ const FABRIC_CLASSIFICATION_HTML = `
                 "Headbands": ["headbands"],
                 "Ponytail Holders": ["ponytail holders"],
 
-                "Nonwoven Disposable Apparel": ["nonwoven", "disposable apparel"],
-                "Surgical or Isolation Gowns": ["surgical gowns", "isolation gowns"],
-                "Plastic or Rubber Coated Garments": [ "rubber or plastics", "plastics or rubber", "plastics or rubber coated garments", "plastics", "rubber coated garments"],
-                "Disposable Briefs and Panties": ["disposable briefs", "disposable panties"],
+                "Nonwoven Disposable Apparel": ["nonwoven disposable apparel"],
+                "Surgical or Isolation Gowns": ["surgical or isolation gowns"],
+                "Plastic or Rubber Coated Garments": [ "rubber or plastics"],
+                "Disposable Briefs and Panties": ["disposable briefs and panties"],
 
                 "Brassieres": ["brassieres"],
                 "Girdles": ["girdles"],
@@ -302,13 +306,13 @@ const FABRIC_CLASSIFICATION_HTML = `
             };
 
             const GENDER_TERMS = {
-                "Men": ["men"],
-                "Women": ["women", "ladies"],
+                "Babies": ["babies", "infants"],
                 "Boys": ["boys"],
                 "Girls": ["girls"],
-                "Babies": ["babies", "infants"]
+                "Men": ["men"],
+                "Women": ["women", "ladies"]
             };
-
+            
             const MATERIAL_NEUTRAL_CATEGORIES = new Set([
                 "brassieres",
                 "girdles",
@@ -560,12 +564,13 @@ const FABRIC_CLASSIFICATION_HTML = `
                 ],
                 gender: [
                     { value: 'All', label: 'All' },
-                    { value: 'Men', label: 'Men' },
-                    { value: 'Women', label: 'Women' },
+                    { value: 'Babies', label: 'Babies' },
                     { value: 'Boys', label: 'Boys' },
                     { value: 'Girls', label: 'Girls' },
-                    { value: 'Babies', label: 'Babies' }
+                    { value: 'Men', label: 'Men' },
+                    { value: 'Women', label: 'Women' }
                 ],
+                
                 importingCountry: [
                     { value: COUNTRY_ENGINE.getImportingCountry(), label: COUNTRY_ENGINE.getImportingCountry() }
                 ],
@@ -1674,6 +1679,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                     "bodyshirts",
                     "shirt-blouses",
                     "undershirts",
+                    "coats"
                 ]);
 
                 const SCOPE_CATEGORIES = new Set([
@@ -1753,10 +1759,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                 };
 
                 function searchHTSByFilters() {
-                    console.log('searchHTSByFilters invoked', selectedFilters);
-                    
 
-                
                     if (isResetting) return;
                     if (!selectedFilters.category || !selectedFilters.exportingCountry) {
                         clearResults();
@@ -1764,12 +1767,10 @@ const FABRIC_CLASSIFICATION_HTML = `
                     }
                 
                     const productCategory = selectedFilters.category;
-                    const gender = selectedFilters.gender || 'All';
-                    const material = selectedFilters.material || 'All';
-                    const fabric = selectedFilters.fabric || 'All';
+                    const gender = selectedFilters.gender;
+                    const material = selectedFilters.material;
+                    const fabric = selectedFilters.fabric;
                     const exportingCountry = selectedFilters.exportingCountry;
-
-                    const isBabiesSearch = gender === "Babies";
                 
                     if (!productCategory || !exportingCountry) {
                         document.getElementById("resultsContainer").innerHTML =
@@ -1780,7 +1781,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                     /* 🔑 STEP 1: derive HTS keywords ONLY from PRODUCT CATEGORY */
                     let keywordList = CATEGORY_KEYWORDS[productCategory] || [];
                 
-                    // Fallback: match sub-item inside grouped keywords
+                    // Fallback: sub-item → grouped keyword set
                     if (!keywordList.length) {
                         const normalizedProduct = normalizeText(productCategory);
                         for (const kws of Object.values(CATEGORY_KEYWORDS)) {
@@ -1810,16 +1811,16 @@ const FABRIC_CLASSIFICATION_HTML = `
                 
                                 if (
                                     rule.excludeParentKeywords &&
-                                    selectedFilters.gender !== 'Babies' &&
+                                    selectedFilters.gender !== "Babies" &&
                                     rule.excludeParentKeywords.some(k =>
-                                        new RegExp(`\\b${k}\\b`, 'i').test(normalizedDesc)
+                                        new RegExp(`\\b${k}\\b`, "i").test(normalizedDesc)
                                     )
                                 ) return false;
                 
                                 if (
                                     rule.excludeKeywords &&
                                     rule.excludeKeywords.some(kw =>
-                                        new RegExp(`\\b${kw}\\b`, 'i').test(normalizedDesc)
+                                        new RegExp(`\\b${kw}\\b`, "i").test(normalizedDesc)
                                     )
                                 ) return false;
                 
@@ -1829,17 +1830,22 @@ const FABRIC_CLASSIFICATION_HTML = `
                                 ) return false;
                             }
                 
-                            /* 👶 BABIES SCOPE — STRICT */
+                            /* 🔓 CATEGORY MATCH (old behavior restored) */
                             const derivedScope = getCategoryScope(productCategory);
-                            if (derivedScope) {
-                                const hasHierarchyScope = hasScopeInHierarchy(item, derivedScope);
-                                const hasExactCategoryPhrase =
-                                    normalizedDesc.includes(productCategoryNormalized);
+                            const isScopeCategory = !!derivedScope;
                 
-                                // Babies text alone is NOT enough
-                                if (!hasHierarchyScope && !hasExactCategoryPhrase) {
-                                    return false;
-                                }
+                            if (
+                                !isScopeCategory &&
+                                !matchesCategoryHierarchy(item, keywordList)
+                            ) {
+                                return false;
+                            }
+                
+                            if (
+                                isScopeCategory &&
+                                !hasScopeInHierarchy(item, derivedScope)
+                            ) {
+                                return false;
                             }
                 
                             /* ✅ GENDER */
@@ -1888,7 +1894,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                             return true;
                         })
                 
-                        /* 🔑 STEP 3: SCORE & TAG */
+                        /* 🔑 STEP 3: SCORE */
                         .map(item => {
                 
                             const fullDesc = normalizeText(getFullHierarchyText(item));
@@ -1902,20 +1908,10 @@ const FABRIC_CLASSIFICATION_HTML = `
                                 const matches = fullDesc.match(new RegExp(escapedKw, "g"));
                 
                                 if (matches) {
-                                    keywordHits += Math.min(matches.length, 5);
+                                    keywordHits += matches.length;   // old behavior
                                     uniqueHits += 1;
                                 }
                             });
-                
-                            const hasBabiesScope = isBabiesSearch && (
-                                getGenderScope(item)?.includes("Babies") ||
-                                fullDesc.includes("babies") ||
-                                fullDesc.includes("infant")
-                            );
-                            
-                
-                            const exactCategoryPhraseMatch =
-                                fullDesc.includes(productCategoryNormalized);
                 
                             const synonyms = CATEGORY_SYNONYMS[productCategory] || [];
                 
@@ -1923,8 +1919,6 @@ const FABRIC_CLASSIFICATION_HTML = `
                                 item,
                                 keywordHits,
                                 uniqueHits,
-                                hasBabiesScope,
-                                exactCategoryPhraseMatch,
                 
                                 isLeaf:
                                     isExactProductAtLeaf(item, productCategoryNormalized) ||
@@ -1942,28 +1936,28 @@ const FABRIC_CLASSIFICATION_HTML = `
                         return;
                     }
                 
-                    /* 🔑 STEP 4: SPLIT RESULTS */
+                    /* 🔑 STEP 4: SPLIT RESULTS (old logic) */
                     const primaryResults = [];
                     const relatedResults = [];
                 
                     filtered.forEach(r => {
                 
-                        const categoryLeaf = getCategoryLeaf(productCategory);
+                        const derivedScope = getCategoryScope(productCategory);
+                
                         const isStrongSingleNodeCategory =
-                            isSingleNodeStrongCategory(categoryLeaf) &&
+                            isSingleNodeStrongCategory(productCategory) &&
                             (r.isLeaf || r.isParent);
                 
-                        const derivedScope = getCategoryScope(productCategory);
                         const isScopeStrong =
-                            derivedScope && hasScopeInHierarchy(r.item, derivedScope);
+                            derivedScope &&
+                            hasScopeInHierarchy(r.item, derivedScope);
                 
                         if (
+                            isScopeStrong ||
+                            r.keywordHits >= 2 ||
+                            r.uniqueHits >= 2 ||
                             r.isLeaf ||
-                            r.exactCategoryPhraseMatch ||
-                            isStrongSingleNodeCategory ||
-                            (isScopeStrong && r.keywordHits >= 1) ||
-                            (isBabiesSearch && r.keywordHits >= 2 && r.hasBabiesScope)
-
+                            isStrongSingleNodeCategory
                         ) {
                             primaryResults.push(r);
                         } else {
@@ -1971,17 +1965,8 @@ const FABRIC_CLASSIFICATION_HTML = `
                         }
                     });
                 
-                    /* 🔑 STEP 5: SORT — CATEGORY FIRST */
+                    /* 🔑 STEP 5: SORT (old priority) */
                     primaryResults.sort((a, b) => {
-                
-                        if (a.exactCategoryPhraseMatch !== b.exactCategoryPhraseMatch) {
-                            return b.exactCategoryPhraseMatch - a.exactCategoryPhraseMatch;
-                        }
-                
-                        if (isBabiesSearch && a.hasBabiesScope !== b.hasBabiesScope) {
-                            return b.hasBabiesScope - a.hasBabiesScope;
-                        }
-                        
                 
                         if (b.keywordHits !== a.keywordHits) {
                             return b.keywordHits - a.keywordHits;
@@ -2004,6 +1989,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                     );
                 }
                 
+                
 
                     function clearResults() {
                         document.getElementById('resultsContainer').innerHTML =
@@ -2011,52 +1997,65 @@ const FABRIC_CLASSIFICATION_HTML = `
                     }
 
                     function highlightText(
-                                text,
-                                searchWords = [],
-                                genderWords = [],
-                                fabricWords = [],
-                                featureWords = []
-                            ) {
-                                  if (!highlightEnabled) {
-                                        return text;
-                                    }
-
-                                let highlighted = text;
-
-                                // 🔍 Search keywords
-                                searchWords.forEach(word => {
-                                    const regex = new RegExp(`(${escapeRegExp(word)})`, 'gi');
-                                    highlighted = highlighted.replace(regex, '<span class="highlight-search">$1</span>');
-                                });
-
-                                // 🚻 Gender
-                                genderWords.forEach(word => {
-                                    const regex = new RegExp(`\\b(${escapeRegExp(word)})(['’]s)?\\b`, 'gi');
-                                    highlighted = highlighted.replace(regex, '<span class="highlight-gender">$&</span>');
-                                });
-
-                                // 🧵 Fabric
-                                fabricWords.forEach(word => {
-                                    const regex = new RegExp(`(${escapeRegExp(word)})`, 'gi');
-                                    highlighted = highlighted.replace(
-                                        regex,
-                                        '<span class="highlight-fabric">$1</span>'
-                                    );
-                                });
-
-                                // ⭐ FEATURE (NEW)
-                                featureWords.forEach(word => {
-                                    const regex = new RegExp(`(${escapeRegExp(word)})`, 'gi');
-                                    highlighted = highlighted.replace(
-                                        regex,
-                                        '<span class="highlight-feature">$1</span>'
-                                    );
-                                });
-
-                                return highlighted;
-                            }
-
-                    function getDirectChildren(parentItem) {
+                        text,
+                        searchWords = [],
+                        genderWords = [],
+                        fabricWords = [],
+                        featureWords = []
+                    ) {
+                        if (!highlightEnabled) {
+                            return text;
+                        }
+                    
+                        let highlighted = text;
+                    
+                        // helper: match whole words, allow plurals, ignore substrings
+                        const wordRegex = (word) =>
+                            new RegExp(
+                                `(?<![a-zA-Z-])(${escapeRegExp(word)})(s)?(?![a-zA-Z-])`,
+                                'gi'
+                            );
+                    
+                        // 🔍 Search keywords
+                        searchWords.forEach(word => {
+                            highlighted = highlighted.replace(
+                                wordRegex(word),
+                                '<span class="highlight-search">$1$2</span>'
+                            );
+                        });
+                    
+                        // 🚻 Gender
+                        genderWords.forEach(word => {
+                            const regex = new RegExp(
+                                `\\b(${escapeRegExp(word)})(['’]s)?\\b`,
+                                'gi'
+                            );
+                            highlighted = highlighted.replace(
+                                regex,
+                                '<span class="highlight-gender">$&</span>'
+                            );
+                        });
+                    
+                        // 🧵 Fabric
+                        fabricWords.forEach(word => {
+                            highlighted = highlighted.replace(
+                                wordRegex(word),
+                                '<span class="highlight-fabric">$1$2</span>'
+                            );
+                        });
+                    
+                        // ⭐ Feature
+                        featureWords.forEach(word => {
+                            highlighted = highlighted.replace(
+                                wordRegex(word),
+                                '<span class="highlight-feature">$1$2</span>'
+                            );
+                        });
+                    
+                        return highlighted;
+                    }
+                    
+                            function getDirectChildren(parentItem) {
                                 const parentIndex = masterData.indexOf(parentItem);
                                 const parentIndent = parseInt(parentItem.indent);
                                 const children = [];
@@ -2153,7 +2152,9 @@ const FABRIC_CLASSIFICATION_HTML = `
                                 });
                             }
 
-                    function highlightInheritedParts(fullDescription, itemDescription, searchWords,genderTerms = [],fabricTerms = [],featureTerms = []) {
+                    
+                    
+                            function highlightInheritedParts(fullDescription, itemDescription, searchWords,genderTerms = [],fabricTerms = [],featureTerms = []) {
 
                         if (!highlightEnabled) {
                             return fullDescription;
@@ -2903,6 +2904,32 @@ document.addEventListener("click", (e) => {
                         openInfoIcon = null;
                     }
                 });
+      
+                window.filterFabricRules = function (input) {
+                    const query = input.value.toLowerCase();
+                    const list = input.closest('.fabric-classification')
+                                     .querySelectorAll('.fabric-rule-list li');
+                
+                    list.forEach(li => {
+                        const text = li.textContent.toLowerCase();
+                        li.style.display = text.includes(query) ? '' : 'none';
+                    });
+                };
+                
+                window.toggleOtherResults = function () {
+                    const content = document.getElementById('otherResultsContent');
+                    const toggle = document.querySelector('.other-results-toggle');
+                
+                    if (!content || !toggle) return;
+                
+                    if (content.classList.contains('show')) {
+                        content.classList.remove('show');
+                        toggle.classList.remove('expanded');
+                    } else {
+                        content.classList.add('show');
+                        toggle.classList.add('expanded');
+                    }
+                };
                 
 // 🌍 expose UI functions for HTML onclick handlers
 window.toggleFilterMenu = toggleFilterMenu;
