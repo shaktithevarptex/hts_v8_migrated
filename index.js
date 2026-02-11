@@ -2632,7 +2632,6 @@ document.querySelectorAll(".filter-trigger").forEach(trigger => {
                     menu.classList.toggle('show');
                     openFilterMenu = menu.classList.contains('show') ? menu : null;
                 
-                    positionFilterMenu(filterType);
                 }
 
                 function buildFilterMenu(filterType) {
