@@ -40,8 +40,8 @@ const COUNTRY_ENGINE = USA_ENGINE;
         let categoryMenuOpen = false;
         let suppressCategoryHover = false;
         let openFilterMenu = null;
-        let openInfoIcon = null;
         let lockedInfoIcon = null;
+        let openInfoIcon = null;
 
 
 // Fabric classification HTML moved to JS so it can be reused and localized
@@ -240,7 +240,11 @@ const FABRIC_CLASSIFICATION_HTML = `
                 "Bodyshirts": ["bodyshirts"],
                 "Sunsuits": ["sunsuits"],
                 "Washsuits": ["wash suits", "washsuits"],
-                "One-Piece Playsuits": ["one-piece playsuits ","one piece playsuits"],
+                "One-Piece Playsuits": [
+                    "one-piece playsuits",
+                    "one piece playsuits",
+                ],
+                
                 "Jumpsuits": ["jumpsuits"],
 
                 "Panty Hose": ["panty hose"],
@@ -824,7 +828,6 @@ const FABRIC_CLASSIFICATION_HTML = `
                         try { buildFilterMenu('material'); } catch (e) {}
 
                         // Trigger search
-                        console.log('Calling searchHTSByFilters from handleCategorySelection');
                         searchHTSByFilters();
                     } catch (err) {
                         console.error('Error handling category selection:', err);
@@ -852,24 +855,6 @@ const FABRIC_CLASSIFICATION_HTML = `
                     document.execCommand("copy");
                     document.body.removeChild(ta);
                     showCopied(btn);
-                }
-
-                function resetMaterialFilterUI() {
-                    const materialSelect = document.getElementById("materialFilter");
-                    const materialNote = document.getElementById("materialNote");
-
-                    if (!materialSelect) return;
-
-                    materialSelect.value = "All";
-                    selectedFilters.material = "All";
-
-                    Array.from(materialSelect.options).forEach(opt => {
-                        opt.disabled = false;
-                    });
-
-                    if (materialNote) {
-                        materialNote.classList.remove("show");
-                    }
                 }
 
                 // 🔒 Category lock based on gender
@@ -906,25 +891,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                         }
                     });
                 }
-                function closeAllMenus() {
-                    // Close normal filters
-                    document.querySelectorAll(".filter-menu").forEach(menu => {
-                        menu.style.display = "none";
-                    });
-                
-                    // Close category menu
-                    const categoryMenu = document.getElementById("categoryMenu");
-                    if (categoryMenu) {
-                        categoryMenu.style.display = "none";
-                    }
-                
-                    // Close category submenus
-                    document.querySelectorAll(".submenu").forEach(sub => {
-                        sub.style.display = "none";
-                    });
-                }
-                
-                
+            
                 function resetAllFilters() {
                     isResetting = true; // 🔒 lock everything
 
@@ -1017,7 +984,6 @@ const FABRIC_CLASSIFICATION_HTML = `
                         isResetting = false;
                     }, 0);
 
-                    console.log('✅ HARD RESET COMPLETE');
                     }
 
 
@@ -1062,29 +1028,6 @@ const FABRIC_CLASSIFICATION_HTML = `
                     buildCountriesFilter();
                 }
 
-
-                function getCategoryAlerts(description) {
-                    const matches = [];
-                    const text = normalizeText(description);
-
-                    for (const [category, rule] of Object.entries(CATEGORY_ALERT_RULES)) {
-                        const matchedKeyword = rule.keywords.find(keyword =>
-                            text === normalizeText(keyword)
-                        );
-
-                        if (matchedKeyword) {
-                            matches.push({
-                                category,
-                                keyword: matchedKeyword,
-                                message: rule.message.trim()
-                            });
-                        }
-                    }
-
-                    return matches;
-                }
-
-
                 function getRateType(countryName) {
 
                     const trade = COUNTRY_ENGINE.getTradeConfig();
@@ -1121,36 +1064,6 @@ const FABRIC_CLASSIFICATION_HTML = `
                     return { value: rate, inherited: false };
                 }
   
-                function selectCategory(item) {
-                    // Remove old selection
-                    document.querySelectorAll(".category-item.selected")
-                        .forEach(el => el.classList.remove("selected"));
-                
-                    // Select current
-                    item.classList.add("selected");
-                
-                    // Update trigger text
-                    document.querySelector(".category-trigger").textContent =
-                        item.querySelector(".label").textContent;
-                
-                    // Save selection
-                    selectedFilters.category = item.dataset.value;
-                
-                    // Enable info icon
-                    document.getElementById("categoryInfoIcon")
-                        .classList.remove("disabled");
-                }
-                function restoreSelectedCategory() {
-                    if (!selectedFilters.category) return;
-
-                    const selectedItem = document.querySelector(
-                        `.category-item[data-value="${selectedFilters.category}"]`
-                    );
-
-                    if (selectedItem) {
-                        selectedItem.classList.add("selected");
-                    }
-                }
                 
                 function buildCategoryMenu() {
                     const container = document.getElementById("categoryMenu");
@@ -1219,7 +1132,8 @@ const FABRIC_CLASSIFICATION_HTML = `
                                 }
                             
                                 // ✅ Save selected category
-                                selectedFilters.category = `${mainCat} → ${sub}`;
+                                selectedFilters.category = sub;
+                                selectedFilters.uiMainCategory = mainCat;
                             
                                 // ✅ Update trigger
                                 document.querySelector(".category-trigger").textContent =
@@ -1261,17 +1175,6 @@ const FABRIC_CLASSIFICATION_HTML = `
                         container.appendChild(mainDiv);
                     });
                     }
-
-                    function filterFabricRules(input) {
-                        const query = input.value.toLowerCase();
-                        const list = input.closest('.fabric-classification')
-                                         .querySelectorAll('.fabric-rule-list li');
-                    
-                        list.forEach(li => {
-                            const text = li.textContent.toLowerCase();
-                            li.style.display = text.includes(query) ? '' : 'none';
-                        });
-                    }
                     
 
                 function hideAllSubmenus() {
@@ -1295,12 +1198,6 @@ const FABRIC_CLASSIFICATION_HTML = `
                         if (checkIndent === 0 && i !== currentIndex - 1) break;
                     }
                     return null;
-                }
-
-                function getChapterFromHTS(htsno) {
-                    if (!htsno) return null;
-                    const chapter = htsno.substring(0, 2);
-                    return parseInt(chapter);
                 }
 
                 function matchesWordBoundary(text, searchWord) {
@@ -1535,21 +1432,6 @@ const FABRIC_CLASSIFICATION_HTML = `
                         return path.map(n => n.description.toLowerCase()).join(' ');
                     }
 
-                function matchesCategoryInLastNodes(item, keywords) {
-                            const path = getHierarchyPath(item);
-
-                            if (!path.length) return false;
-
-                            const lastNode = path[path.length - 1].description.toLowerCase();
-                            const secondLastNode =
-                                path.length > 1 ? path[path.length - 2].description.toLowerCase() : '';
-
-                            return keywords.some(k =>
-                                matchesWordBoundary(lastNode, k) ||
-                                matchesWordBoundary(secondLastNode, k)
-                            );
-                }
-
                 function getGenderScope(item) {
                         const path = getHierarchyPath(item);
                         const found = new Set();
@@ -1566,11 +1448,6 @@ const FABRIC_CLASSIFICATION_HTML = `
 
                         return found.size ? Array.from(found) : null;
                     }
-
-                function getProductSubtype(item) {
-                    const path = getHierarchyPath(item);
-                    return normalizeText(path[path.length - 1].description);
-                }
 
                 function extractGendersFromText(text) {
                     const found = new Set();
@@ -1679,7 +1556,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                     "bodyshirts",
                     "shirt-blouses",
                     "undershirts",
-                    "coats"
+                    "coats",
                 ]);
 
                 const SCOPE_CATEGORIES = new Set([
@@ -2002,7 +1879,7 @@ const FABRIC_CLASSIFICATION_HTML = `
                         genderWords = [],
                         fabricWords = [],
                         featureWords = []
-                    ) {
+                        ) {
                         if (!highlightEnabled) {
                             return text;
                         }
@@ -2154,7 +2031,7 @@ const FABRIC_CLASSIFICATION_HTML = `
 
                     
                     
-                            function highlightInheritedParts(fullDescription, itemDescription, searchWords,genderTerms = [],fabricTerms = [],featureTerms = []) {
+                    function highlightInheritedParts(fullDescription, itemDescription, searchWords,genderTerms = [],fabricTerms = [],featureTerms = []) {
 
                         if (!highlightEnabled) {
                             return fullDescription;
@@ -2298,26 +2175,26 @@ const FABRIC_CLASSIFICATION_HTML = `
                                     >
                                         <td class="row-number">${index + 1}</td>
                                         <td>
-    <div class="hts-code-wrapper">
-        <a
-            href="https://hts.usitc.gov/search?query=${encodeURIComponent(item.htsno)}"
-            target="_blank"
-            class="hts-code-link"
-            title="View HTS Code Structure on USITC Website"
-            onclick="event.stopPropagation()"
-        >
-            ${item.htsno}
-        </a>
+                                            <div class="hts-code-wrapper">
+                                                <a
+                                                    href="https://hts.usitc.gov/search?query=${encodeURIComponent(item.htsno)}"
+                                                    target="_blank"
+                                                    class="hts-code-link"
+                                                    title="View HTS Code Structure on USITC Website"
+                                                    onclick="event.stopPropagation()"
+                                                >
+                                                    ${item.htsno}
+                                                </a>
 
-        <button
-            class="hts-info-btn"
-            title="View details"
-            onclick='event.stopPropagation(); showDetails(${JSON.stringify(item).replace(/'/g, "&apos;")}, "${rateType}")'
-        >
-            i
-        </button>
-    </div>
-</td>
+                                                <button
+                                                    class="hts-info-btn"
+                                                    title="View details"
+                                                    onclick='event.stopPropagation(); showDetails(${JSON.stringify(item).replace(/'/g, "&apos;")}, "${rateType}")'
+                                                >
+                                                    i
+                                                </button>
+                                            </div>
+                                        </td>
 
                                         <td>
                                             ${highlightedDescription}
@@ -2382,26 +2259,26 @@ const FABRIC_CLASSIFICATION_HTML = `
                                     <tr onclick='showDetails(${JSON.stringify(item).replace(/'/g, "&apos;")}, "${rateType}")'>
                                         <td class="row-number">${index + 1}</td>
                                         <td>
-    <div class="hts-code-wrapper">
-        <a
-            href="https://hts.usitc.gov/search?query=${encodeURIComponent(item.htsno)}"
-            target="_blank"
-            class="hts-code-link"
-            title="View HTS Code Structure on USITC Website"
-            onclick="event.stopPropagation()"
-        >
-            ${item.htsno}
-        </a>
+                                    <div class="hts-code-wrapper">
+                                        <a
+                                            href="https://hts.usitc.gov/search?query=${encodeURIComponent(item.htsno)}"
+                                            target="_blank"
+                                            class="hts-code-link"
+                                            title="View HTS Code Structure on USITC Website"
+                                            onclick="event.stopPropagation()"
+                                        >
+                                            ${item.htsno}
+                                        </a>
 
-        <button
-            class="hts-info-btn"
-            title="View details"
-            onclick='event.stopPropagation(); showDetails(${JSON.stringify(item).replace(/'/g, "&apos;")}, "${rateType}")'
-        >
-            i
-        </button>
-    </div>
-</td>
+                                        <button
+                                            class="hts-info-btn"
+                                            title="View details"
+                                            onclick='event.stopPropagation(); showDetails(${JSON.stringify(item).replace(/'/g, "&apos;")}, "${rateType}")'
+                                        >
+                                            i
+                                        </button>
+                                    </div>
+                                </td>
 
                                         <td>${highlightedDescription}</td>
                                         <td>${rateType}</td>
@@ -2420,18 +2297,6 @@ const FABRIC_CLASSIFICATION_HTML = `
 
                         container.innerHTML = html;
                     }
-
-                function toggleOtherResults() {
-                    const content = document.getElementById('otherResultsContent');
-                    const toggle = document.querySelector('.other-results-toggle');
-                    if (content.classList.contains('show')) {
-                        content.classList.remove('show');
-                        toggle.classList.remove('expanded');
-                    } else {
-                        content.classList.add('show');
-                        toggle.classList.add('expanded');
-                    }
-                }
   
                 function showDetails(item, rateType) {
                         const modal = document.getElementById('detailModal');
@@ -2647,14 +2512,6 @@ function hideInfoOnHover(icon) {
 }
 
 
-document.addEventListener("click", (e) => {
-    if (!e.target.closest(".info-icon")) {
-        document.querySelectorAll(".info-icon.open").forEach(icon => {
-            icon.classList.remove("open");
-        });
-    }
-});
-
 document.addEventListener('mouseover', e => {
     const icon = e.target.closest('.info-icon');
     if (!icon) return;
@@ -2718,19 +2575,6 @@ document.querySelectorAll(".filter-trigger").forEach(trigger => {
     });
 });
 
-document.addEventListener("click", (e) => {
-    // Click completely outside category + filters
-    if (
-        !e.target.closest(".category-trigger") &&
-        !e.target.closest(".category-menu") &&
-        !e.target.closest(".filter-trigger") &&
-        !e.target.closest(".filter-menu")
-    ) {
-        closeAllCategoryMenus();
-    }
-});
-
-
 
                 document.addEventListener("click", e => {
                     const btn = e.target.closest(".copy-hts-btn");
@@ -2755,23 +2599,39 @@ document.addEventListener("click", (e) => {
                         e.stopPropagation();
                     });
                 });
+   
+                function toggleFilterMenu(eventOrFilter, maybeFilterType) {
 
-              
-                function toggleFilterMenu(event, filterType) {
-                    event.stopPropagation();
-                    
+                    let event;
+                    let filterType;
+                
+                    // Called from addEventListener
+                    if (eventOrFilter instanceof Event) {
+                        event = eventOrFilter;
+                        filterType = maybeFilterType;
+                    } 
+                    // Called from inline HTML onclick
+                    else {
+                        filterType = eventOrFilter;
+                        event = window.event;
+                    }
+                
+                    if (event && event.stopPropagation) {
+                        event.stopPropagation();
+                    }
+                
                     const menu = document.getElementById(filterType + 'Menu');
-                    
+                    if (!menu) return;
+                
                     // Close other menus
                     if (openFilterMenu && openFilterMenu !== menu) {
                         openFilterMenu.classList.remove('show');
                     }
-                    
+                
                     // Toggle current menu
                     menu.classList.toggle('show');
                     openFilterMenu = menu.classList.contains('show') ? menu : null;
-                    
-                    // Position menu near trigger
+                
                     positionFilterMenu(filterType);
                 }
 
@@ -2888,23 +2748,32 @@ document.addEventListener("click", (e) => {
                         menu.appendChild(div);
                     });
                 }
-
-                // Close menus when clicking outside
-                document.addEventListener('click', () => {
-                    if (openFilterMenu) {
-                        openFilterMenu.classList.remove('show');
+                
+                document.addEventListener("click", (e) => {
+                    const clickedFilter = e.target.closest(".filter-trigger, .filter-menu");
+                    const clickedCategory = e.target.closest(".category-trigger, .category-menu");
+                    const clickedInfo = e.target.closest(".info-icon");
+                
+                    // close filter menus
+                    if (!clickedFilter && openFilterMenu) {
+                        openFilterMenu.classList.remove("show");
                         openFilterMenu = null;
                     }
-                });
-
-                document.addEventListener("click", e => {
-                    if (!e.target.closest(".info-icon") && lockedInfoIcon) {
+                
+                    // close category menus
+                    if (!clickedCategory && categoryMenuOpen) {
+                        closeAllCategoryMenus();
+                    }
+                
+                    // close locked info tooltip
+                    if (!clickedInfo && lockedInfoIcon) {
                         lockedInfoIcon.classList.remove("open", "active");
                         lockedInfoIcon = null;
                         openInfoIcon = null;
                     }
                 });
-      
+
+                
                 window.filterFabricRules = function (input) {
                     const query = input.value.toLowerCase();
                     const list = input.closest('.fabric-classification')
@@ -2946,8 +2815,6 @@ window.copyHTSCode = copyHTSCode;
 
     initializeCountries();
     buildCategoryMenu();
-    restoreSelectedCategory();
-
     initializeFilterMenus();
     loadFlatFile();
     checkAdminMode();
