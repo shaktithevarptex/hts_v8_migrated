@@ -1,4 +1,5 @@
 import { USA_ENGINE } from "./countries/usa/engine.js";
+import { COUNTRY_CODE_MAP } from "./countries/usa/countryCodes.js";
 
 const COUNTRY_ENGINE = USA_ENGINE;
 
@@ -1000,25 +1001,10 @@ const FABRIC_CLASSIFICATION_HTML = `
                 }
 
                 function initializeCountries() {
-                    const trade = COUNTRY_ENGINE.getTradeConfig();
+                    // 🌍 All countries from ISO map (real world list)
+                    const countries = Object.keys(COUNTRY_CODE_MAP);
                 
-                    const countries = [
-                        ...trade.column2Countries,
-                        ...trade.specialCountries.map(c => c.name),
-                
-                        // default general countries
-                        "India",
-                        "China",
-                        "Vietnam",
-                        "Bangladesh",
-                        "Pakistan",
-                        "Indonesia",
-                        "Turkey",
-                        "Mexico",
-                        "Brazil"
-                    ];
-                
-                    allCountries = [...new Set(countries)]
+                    allCountries = countries
                         .sort((a, b) => a.localeCompare(b))
                         .map(name => ({ name }));
                 
@@ -2698,22 +2684,34 @@ document.querySelectorAll(".filter-trigger").forEach(trigger => {
                 function buildCountriesFilter() {
                     const menu = document.getElementById('countryMenu');
                     const currentValue = selectedFilters.country || 'Select Country';
-                    
-                    menu.innerHTML = '';
-                    
-                    // Add "Select Country" option
+                
+                    // ⭐ Add search box at top
+                    menu.innerHTML = `
+                        <input 
+                            type="text"
+                            id="countrySearchInput"
+                            class="country-search"
+                            placeholder="Type to search country..."
+                            oninput="filterCountryMenu(this)"
+                        />
+                    `;
+                
+                    // ⭐ Add "Select Country" option
                     const selectOption = document.createElement('div');
-                    selectOption.className = 'filter-menu-item';
+                    selectOption.className = 'filter-menu-item country-reset';
                     selectOption.textContent = 'Select Country';
                     selectOption.onclick = () => selectFilterItem('country', '', 'Select Country');
                     menu.appendChild(selectOption);
-                    
+                
+                    // ⭐ Render countries list
                     allCountries.forEach(country => {
                         const div = document.createElement('div');
                         div.className = 'filter-menu-item';
+                
                         if (country.name === currentValue) {
                             div.classList.add('selected');
                         }
+                
                         div.textContent = country.name;
                         div.onclick = () => selectFilterItem('country', country.name, country.name);
                         menu.appendChild(div);
@@ -2771,6 +2769,58 @@ document.querySelectorAll(".filter-trigger").forEach(trigger => {
                     }
                 };
                 
+                window.filterCountryMenu = function (input) {
+                    const query = input.value.toLowerCase().trim();
+                    const menu = document.getElementById('countryMenu');
+                
+                    const countries = Array.from(
+                        menu.querySelectorAll('.filter-menu-item:not(.country-reset)')
+                    );
+                
+                    // ⭐ If search empty → show all + reset order
+                    if (!query) {
+                        countries
+                            .sort((a, b) => a.textContent.localeCompare(b.textContent))
+                            .forEach(el => {
+                                el.style.display = '';
+                                menu.appendChild(el);
+                            });
+                        return;
+                    }
+                
+                    // ⭐ Score + filter
+                    const matches = [];
+                
+                    countries.forEach(el => {
+                        const name = el.textContent.toLowerCase();
+                
+                        if (name.startsWith(query)) {
+                            el.dataset.score = 2;
+                            matches.push(el);
+                        } 
+                        else if (name.includes(query)) {
+                            el.dataset.score = 1;
+                            matches.push(el);
+                        } 
+                        else {
+                            el.style.display = 'none'; // ❌ hide non match
+                        }
+                    });
+                
+                    // ⭐ Sort matches
+                    matches.sort((a, b) => {
+                        const scoreDiff = b.dataset.score - a.dataset.score;
+                        if (scoreDiff !== 0) return scoreDiff;
+                        return a.textContent.localeCompare(b.textContent);
+                    });
+                
+                    // ⭐ Re-render matched list
+                    matches.forEach(el => {
+                        el.style.display = '';
+                        menu.appendChild(el);
+                    });
+                };
+
 // 🌍 expose UI functions for HTML onclick handlers
 window.toggleFilterMenu = toggleFilterMenu;
 window.resetAllFilters = resetAllFilters;
