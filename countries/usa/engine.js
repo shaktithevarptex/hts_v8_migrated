@@ -12,8 +12,7 @@ export const USA_ENGINE = {
         return USA_TRADE_CONFIG;
     },
 
-    getRateColumn(countryName, item) {
-        // 🛡️ SAFETY GUARD — this was missing
+    getRateColumn(countryName, item, findParentWithRateFn) {
         if (!item) return "general";
     
         const trade = this.getTradeConfig();
@@ -23,21 +22,28 @@ export const USA_ENGINE = {
             return "other";
         }
     
-        // 2️⃣ Check if HTS item contains country code in SPECIAL column
         const code = COUNTRY_CODE_MAP[countryName];
         if (!code) return "general";
     
-        // 🛡️ EXTRA SAFE ACCESS
-        const specialText = item?.special || "";
+        // 2️⃣ Look for SPECIAL text on this row OR parents 🔥
+        let specialText = item.special || "";
     
-        // look for (AU) or AU or ,AU, etc
+        // ⭐ NEW — inherit SPECIAL column text from parents
+        if (!specialText || specialText === "N/A") {
+            const parent = findParentWithRateFn?.(item, "special");
+            if (parent && parent.special) {
+                specialText = parent.special;
+            }
+        }
+    
+        if (!specialText) return "general";
+    
         const regex = new RegExp(`\\b${code}\\b`, "i");
     
         if (regex.test(specialText)) {
             return "special";
         }
     
-        // 3️⃣ default MFN
         return "general";
     },
 
@@ -62,7 +68,7 @@ export const USA_ENGINE = {
             };
         }
     
-        const rateField = this.getRateColumn(exportingCountry, item);
+        const rateField = this.getRateColumn(exportingCountry, item, findParentWithRateFn);
     
         let rate = item[rateField];
     
