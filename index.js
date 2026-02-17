@@ -646,6 +646,14 @@ const FABRIC_CLASSIFICATION_HTML = `
                 }
             }
 
+            function closeLockedInfoTooltip() {
+                if (lockedInfoIcon) {
+                    lockedInfoIcon.classList.remove("open", "active");
+                    lockedInfoIcon = null;
+                    openInfoIcon = null;
+                }
+            }
+            
             function closeAllCategoryMenus() {
                 const categoryMenu = document.getElementById("categoryMenu");
                 if (categoryMenu) {
@@ -2524,14 +2532,18 @@ document.querySelectorAll(".filter-trigger").forEach(trigger => {
     trigger.addEventListener("click", e => {
         e.stopPropagation();
 
+        // ✅ CLOSE locked info tooltip when filters open
+        closeLockedInfoTooltip();
+
         // 🔑 FORCE close category when opening any filter
         if (categoryMenuOpen) {
             closeAllCategoryMenus();
         }
 
-        toggleFilterMenu(trigger); // your existing logic
+        toggleFilterMenu(trigger);
     });
 });
+
 
 
                 document.addEventListener("click", e => {
@@ -2618,6 +2630,7 @@ document.querySelectorAll(".filter-trigger").forEach(trigger => {
                 }
 
                 function selectFilterItem(filterType, value, label) {
+                    closeLockedInfoTooltip();
                     selectedFilters[filterType] = value;
                     
                     const trigger = document.getElementById(filterType + 'Trigger');
@@ -2720,29 +2733,33 @@ document.querySelectorAll(".filter-trigger").forEach(trigger => {
                     });
                 }
                 
-                document.addEventListener("click", (e) => {
-                    const clickedFilter = e.target.closest(".filter-trigger, .filter-menu");
-                    const clickedCategory = e.target.closest(".category-trigger, .category-menu");
-                    const clickedInfo = e.target.closest(".info-icon");
-                
-                    // close filter menus
-                    if (!clickedFilter && openFilterMenu) {
-                        openFilterMenu.classList.remove("show");
-                        openFilterMenu = null;
-                    }
-                
-                    // close category menus
-                    if (!clickedCategory && categoryMenuOpen) {
-                        closeAllCategoryMenus();
-                    }
-                
-                    // close locked info tooltip
-                    if (!clickedInfo && lockedInfoIcon) {
-                        lockedInfoIcon.classList.remove("open", "active");
-                        lockedInfoIcon = null;
-                        openInfoIcon = null;
-                    }
-                });
+                // 🔥 GLOBAL CAPTURE CLICK HANDLER (runs before stopPropagation)
+document.addEventListener("click", (e) => {
+
+    const clickedFilter = e.target.closest(".filter-trigger, .filter-menu");
+    const clickedCategory = e.target.closest(".category-trigger, .category-menu");
+    const clickedInfo = e.target.closest(".info-icon");
+
+    // ✅ ALWAYS close locked tooltip when clicking ANYTHING except the icon
+    if (!clickedInfo && lockedInfoIcon) {
+        lockedInfoIcon.classList.remove("open", "active");
+        lockedInfoIcon = null;
+        openInfoIcon = null;
+    }
+
+    // Close filter menus
+    if (!clickedFilter && openFilterMenu) {
+        openFilterMenu.classList.remove("show");
+        openFilterMenu = null;
+    }
+
+    // Close category menus
+    if (!clickedCategory && categoryMenuOpen) {
+        closeAllCategoryMenus();
+    }
+
+}, true); // ⭐⭐⭐ THIS TRUE IS THE MAGIC (capture phase)
+
 
                 
                 window.filterFabricRules = function (input) {
